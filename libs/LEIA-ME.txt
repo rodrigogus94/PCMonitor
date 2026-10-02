@@ -1,0 +1,1 @@
+Esta pasta recebe as DLLs do LibreHardwareMonitor (instalar.bat ou setup_lhm.py baixam automaticamente).

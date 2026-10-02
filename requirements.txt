@@ -1,0 +1,4 @@
+PySide6>=6.6
+psutil>=5.9
+nvidia-ml-py>=12.535
+pythonnet>=3.0.3
