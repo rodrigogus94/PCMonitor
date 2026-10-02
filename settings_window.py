@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 import autostart
 import config
 import history
+from diag_tab import DiagnosticsTab
 from sensors import format_value, is_admin
 
 
@@ -32,7 +33,7 @@ class SettingsWindow(QWidget):
     place_requested = Signal(str, int, str)   # widget_id, índice da tela, canto ("tl","tr","bl","br")
     logging_changed = Signal()
 
-    def __init__(self, cfg, catalog, status, history_folder):
+    def __init__(self, cfg, catalog, status, history_folder, get_session_path=None):
         super().__init__()
         self.cfg, self.catalog, self.status = cfg, catalog, status
         self.history_folder = history_folder
@@ -44,9 +45,13 @@ class SettingsWindow(QWidget):
         self.tabs = QTabWidget()
         root.addWidget(self.tabs)
         self.tabs.addTab(self._build_widgets_tab(), "Widgets")
-        self.tabs.addTab(self._build_live_tab(), "Ao vivo")
+        self._tab_live = self._build_live_tab()
+        self.tabs.addTab(self._tab_live, "Ao vivo")
         self.tabs.addTab(self._build_general_tab(), "Geral")
-        self.tabs.addTab(self._build_history_tab(), "Histórico")
+        self._tab_diag = DiagnosticsTab(cfg, get_session_path or (lambda: None), self.changed.emit)
+        self.tabs.addTab(self._tab_diag, "Diagnóstico")
+        self._tab_hist = self._build_history_tab()
+        self.tabs.addTab(self._tab_hist, "Histórico")
         self.tabs.currentChanged.connect(self._on_tab)
         self.rebuild_all()
 
@@ -366,7 +371,7 @@ class SettingsWindow(QWidget):
             self.tbl_live.setRowHidden(r, bool(t) and t not in hay)
 
     def update_live(self, values):
-        if not self.isVisible() or self.tabs.currentIndex() != 1:
+        if not self.isVisible() or self.tabs.currentWidget() is not self._tab_live:
             return
         for mid, r in self._live_rows.items():
             self.tbl_live.item(r, 2).setText(format_value(self.catalog.get(mid), values.get(mid)))
@@ -569,7 +574,8 @@ class SettingsWindow(QWidget):
 
     # ============================================================== geral
     def _on_tab(self, i):
-        if i == 3:
+        w = self.tabs.widget(i)
+        if w is self._tab_hist:
             self._load_history()
         elif i == 2:
             self.update_status()
@@ -583,7 +589,7 @@ class SettingsWindow(QWidget):
             self.cmb_screen.addItem(f"Tela {i + 1} ({g.width()}×{g.height()})")
         self._fill_list(min(max(0, self.list_widgets.currentRow()), len(self.cfg["widgets"]) - 1))
         self._load_general()
-        if self.tabs.currentIndex() == 3:
+        if self.tabs.currentWidget() is self._tab_hist:
             self._load_history()
 
     def set_catalog_ready(self, status):

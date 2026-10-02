@@ -1,7 +1,10 @@
 """Coleta de sensores: psutil (CPU/RAM/disco/rede), NVML (NVIDIA) e LibreHardwareMonitor (temperaturas do Ryzen etc.)."""
 import ctypes
+import datetime as _dt
 import os
+import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -111,10 +114,29 @@ class Collector:
         self._lhm_sensors = []    # (id, sensor)
         self._alias = {}          # id_alias -> id_sensor
         self._clock_ids = []
+        self._last_crash = None
         psutil.cpu_percent(None)
         self._build_base()
         self._init_nvml()
         self._init_lhm()
+        if sys.platform == "win32":
+            self._add(Metric("sys.since_crash", "Tempo sem queda (desde o último reinício inesperado)",
+                             "Sem queda há", "s", "Sistema", alert=False))
+            threading.Thread(target=self._fetch_last_crash, daemon=True).start()
+
+    def _fetch_last_crash(self):
+        """Lê do registro de eventos a data do último reinício inesperado (Kernel-Power 41)."""
+        cmd = ("Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-Kernel-Power';Id=41} "
+               "-MaxEvents 1 -ErrorAction SilentlyContinue | ForEach-Object { $_.TimeCreated.ToString('s') }")
+        try:
+            r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
+                               capture_output=True, text=True, timeout=90,
+                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            line = (r.stdout or "").strip().splitlines()
+            if line:
+                self._last_crash = _dt.datetime.fromisoformat(line[-1].strip())
+        except Exception:  # noqa: BLE001
+            pass
 
     # ------------------------------------------------------------------ catálogo
     def _add(self, m):
@@ -364,6 +386,9 @@ class Collector:
             v["disk.write"] = max(0.0, (d.write_bytes - self._last_disk.write_bytes) / dt)
         self._last_disk = d
         v["sys.uptime"] = time.time() - psutil.boot_time()
+        if "sys.since_crash" in self.catalog:
+            v["sys.since_crash"] = ((_dt.datetime.now() - self._last_crash).total_seconds()
+                                    if self._last_crash else None)
         for mid, mount in self._parts:
             try:
                 v[mid] = psutil.disk_usage(mount).percent

@@ -196,7 +196,8 @@ class Controller(QObject):
     # ------------------------------------------------------------ configurações
     def open_settings(self, widget_id=None):
         if self.settings is None:
-            self.settings = SettingsWindow(self.cfg, self.catalog, self.status, config.history_dir())
+            self.settings = SettingsWindow(self.cfg, self.catalog, self.status, config.history_dir(),
+                                           lambda: self.logger.path if self.logger.active else None)
             self.settings.changed.connect(self.on_cfg_changed)
             self.settings.structure_changed.connect(self.on_cfg_changed)
             self.settings.place_requested.connect(self.on_place)

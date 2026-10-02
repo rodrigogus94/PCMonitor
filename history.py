@@ -183,6 +183,87 @@ def find_unclean(folder):
     return None
 
 
+def last_values(path):
+    """Cabeçalho + última linha de dados, de forma barata: {'ts': ..., 'values': {id: float}} ou None."""
+    try:
+        header = None
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for ln in f:
+                if ln.startswith("#") or not ln.strip():
+                    continue
+                header = next(csv.reader([ln]))
+                break
+        tail = [ln for ln in _tail_lines(path) if not ln.startswith("#") and ln[:4].isdigit()]
+        if not header or not tail:
+            return None
+        row = next(csv.reader([tail[-1]]))
+    except (OSError, StopIteration):
+        return None
+    if len(row) != len(header):
+        return None
+    values = {}
+    for k, v in zip(header[1:], row[1:]):
+        try:
+            values[k] = float(v)
+        except ValueError:
+            pass
+    return {"ts": row[0], "values": values}
+
+
+def unclean_last_values(folder, exclude=None, limit=15):
+    """Últimos valores de cada sessão que não terminou normalmente (exceto a sessão em andamento)."""
+    out = []
+    for path in list_sessions(folder):
+        if len(out) >= limit:
+            break
+        if exclude and os.path.abspath(path) == os.path.abspath(exclude):
+            continue
+        info = quick_info(path)
+        if info["clean"]:
+            continue
+        lv = last_values(path)
+        if lv:
+            lv["start"] = info["start"]
+            out.append(lv)
+    return out
+
+
+def recent_stats(folder, hours=24, exclude=None):
+    """Máx./média de cpu.temp e nv0.temp nas sessões das últimas `hours` horas (inclui a sessão atual)."""
+    cutoff = dt.datetime.now() - dt.timedelta(hours=hours)
+    acc = {"cpu.temp": [], "nv0.temp": []}
+    rows, interval = 0, 5
+    for path in list_sessions(folder):
+        try:
+            if dt.datetime.fromtimestamp(os.path.getmtime(path)) < cutoff:
+                break
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                header = None
+                for ln in f:
+                    if ln.startswith("#") or not ln.strip():
+                        continue
+                    if header is None:
+                        header = next(csv.reader([ln]))
+                        idx = {k: header.index(k) for k in acc if k in header}
+                        continue
+                    row = next(csv.reader([ln]))
+                    if len(row) != len(header):
+                        continue
+                    rows += 1
+                    for k, i in idx.items():
+                        try:
+                            acc[k].append(float(row[i]))
+                        except ValueError:
+                            pass
+        except (OSError, StopIteration):
+            continue
+    out = {"rows": rows, "interval_s": interval}
+    for k, v in acc.items():
+        if v:
+            out[k] = {"max": max(v), "avg": sum(v) / len(v)}
+    return out
+
+
 def cleanup(folder, days):
     import time
     limit = time.time() - days * 86400

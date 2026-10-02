@@ -20,6 +20,14 @@ Também grava um **histórico em arquivo** para investigar quedas e telas azuis.
 - **Aba Ao vivo:** todas as leituras disponíveis agora, com busca.
 - **Aba Geral:** intervalo de atualização, limites de cor (verde/amarelo/vermelho), alertas na bandeja,
   histórico e iniciar com o Windows.
+- **Aba Diagnóstico:** serve para qualquer problema do PC. Escolha **o que está acontecendo** (lentidão, tela azul
+  ou reinícios, programas fechando, calor, disco, internet, vídeo/jogos, Windows Update) ou use o **Check-up geral**.
+  Ele lê eventos do Windows, BIOS, memória, discos, drivers, rede, segurança, inicialização e o histórico do monitor,
+  mostra a **causa mais provável** com evidências e o que fazer, em ordem, e separa os achados do seu foco dos demais.
+  Exporta o relatório (.txt) e os dados brutos (.json). Em **Marco de comparação** você registra uma mudança
+  (ex.: "EXPO desativado") e o relatório compara as quedas antes e depois. A subaba **Ferramentas** roda SFC, DISM e
+  CHKDSK (somente leitura) com a saída ao vivo e abre atalhos do Windows (Monitor de Confiabilidade, Visualizador de
+  Eventos, Teste de Memória, etc.).
 - **Aba Histórico:** sessões gravadas, com máximos e últimos valores registrados antes de cada queda.
 
 ## Investigando as quedas
@@ -34,6 +42,14 @@ sessão fica sem essa marca. Na próxima abertura você recebe um aviso com os �
 Interpretação rápida: temperatura de CPU/GPU subindo bem antes da queda indica calor; RAM e pagefile
 perto do limite indicam falta de memória. Se tudo estiver normal até o último registro, o problema tende a
 ser hardware instável (por exemplo a RAM com EXPO/DOCP) ou driver, não calor nem falta de memória.
+
+## Sobre o diagnóstico
+
+Ele não altera nada no sistema (exceto os botões de reparo da aba Ferramentas, que pedem confirmação).
+O resultado é uma estimativa baseada em padrões conhecidos, não uma certeza: confirme com os testes indicados.
+Se algum dado não aparecer, use **Salvar dados brutos** e envie o arquivo para análise.
+
+Nos widgets há também a métrica **Sem queda há**, que mostra o tempo desde o último reinício inesperado.
 
 ## Se a temperatura da CPU não aparecer
 

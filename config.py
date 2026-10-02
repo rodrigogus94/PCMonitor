@@ -52,6 +52,8 @@ DEFAULT = {
     "alerts": {"enabled": True, "temp_c": 90, "ram_pct": 95, "cooldown_s": 300},
     "logging": {"enabled": True, "interval_s": 5, "retention_days": 30},
     "start_with_windows": False,
+    "diag_scenario": "geral",
+    "milestone": None,   # {"ts": "...", "note": "..."} marco de comparação do diagnóstico
     "widgets": [],
 }
 
