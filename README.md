@@ -5,11 +5,21 @@ Também grava um **histórico em arquivo** para investigar quedas e telas azuis.
 
 ## Instalação (uma vez)
 
-1. Instale o Python 3.10 a 3.13 em python.org, marcando **"Add Python to PATH"**.
-2. Dê dois cliques em `instalar.bat`. Ele cria o ambiente, instala as dependências e baixa o
+1. **Baixe o projeto:** na página do projeto no GitHub (https://github.com/SEU-USUARIO/pcmonitor), clique no
+   botão verde **`Code`** e escolha **`Download ZIP`**. Se o Windows reclamar do arquivo baixado, clique nele
+   com o botão direito, abra **Propriedades**, marque **Desbloquear** e confirme.
+2. **Extraia o zip:** botão direito no arquivo, **"Extrair tudo…"**. Não execute nada de dentro do zip — o
+   Windows mostra o conteúdo como se fosse uma pasta comum, mas os `.bat` não funcionam ali. Deixe a pasta
+   extraída em um lugar definitivo (por exemplo `C:\pcmonitor`): mover depois quebra a opção "Iniciar com o
+   Windows", que grava o caminho completo.
+3. Instale o Python 3.10 a 3.13 em python.org, marcando **"Add Python to PATH"**.
+4. Dê dois cliques em `instalar.bat`. Ele cria o ambiente, instala as dependências e baixa o
    LibreHardwareMonitor (leitura de temperatura da CPU, placa-mãe e SSDs) para a pasta `libs/`.
-3. Dê dois cliques em `executar.bat`. Ele pede permissão de administrador, necessária para ler as
+5. Dê dois cliques em `executar.bat`. Ele pede permissão de administrador, necessária para ler as
    temperaturas. O ícone aparece na bandeja, perto do relógio.
+
+Quem já usa o Git pode substituir os passos 1 e 2 por `git clone https://github.com/SEU-USUARIO/pcmonitor.git`,
+o que facilita atualizar depois com `git pull`.
 
 ## Como usar
 
