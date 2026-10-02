@@ -5,7 +5,7 @@ Também grava um **histórico em arquivo** para investigar quedas e telas azuis.
 
 ## Instalação (uma vez)
 
-1. **Baixe o projeto:** na página do projeto no GitHub (https://github.com/SEU-USUARIO/pcmonitor), clique no
+1. **Baixe o projeto:** na página do projeto no GitHub, clique no
    botão verde **`Code`** e escolha **`Download ZIP`**. Se o Windows reclamar do arquivo baixado, clique nele
    com o botão direito, abra **Propriedades**, marque **Desbloquear** e confirme.
 2. **Extraia o zip:** botão direito no arquivo, **"Extrair tudo…"**. Não execute nada de dentro do zip — o
