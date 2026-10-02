@@ -24,8 +24,8 @@ Também grava um **histórico em arquivo** para investigar quedas e telas azuis.
   ou reinícios, programas fechando, calor, disco, internet, vídeo/jogos, Windows Update) ou use o **Check-up geral**.
   Ele lê eventos do Windows, BIOS, memória, discos, drivers, rede, segurança, inicialização e o histórico do monitor,
   mostra a **causa mais provável** com evidências e o que fazer, em ordem, e separa os achados do seu foco dos demais.
-  Exporta o relatório (.txt) e os dados brutos (.json). Em **Marco de comparação** você registra uma mudança
-  (ex.: "EXPO desativado") e o relatório compara as quedas antes e depois. A subaba **Ferramentas** roda SFC, DISM e
+  Ao fim de cada diagnóstico, o relatório (.txt) e os dados brutos (.json) são salvos sozinhos em duas pastas, `Documentos\PCMonitor\Relatorios` e `Documentos\PCMonitor\Dados brutos` (dá para mudar a pasta e abrir ambas pela própria aba). Em **Marco de comparação** você registra uma mudança
+  (ex.: "EXPO desativado") e o relatório compara as quedas antes e depois. A subaba **Comandos sugeridos** lista comandos de PowerShell ligados ao seu problema (ordenados pelas causas prováveis). **Nenhum é executado automaticamente**: você lê a explicação, pode editar e copiar o comando para o seu PowerShell, ou clicar em *Executar aqui…* e confirmar. Os que alteram o sistema vêm marcados com ⚠. A subaba **Ferramentas** roda SFC, DISM e
   CHKDSK (somente leitura) com a saída ao vivo e abre atalhos do Windows (Monitor de Confiabilidade, Visualizador de
   Eventos, Teste de Memória, etc.).
 - **Aba Histórico:** sessões gravadas, com máximos e últimos valores registrados antes de cada queda.

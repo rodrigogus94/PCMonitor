@@ -5,16 +5,17 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import QProcess, Qt, QThread, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication
+from PySide6.QtCore import QProcess, Qt, QThread, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QGuiApplication
 from PySide6.QtWidgets import (
-    QComboBox, QFileDialog, QGridLayout, QGroupBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem,
+    QCheckBox, QComboBox, QFileDialog, QGridLayout, QGroupBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem,
     QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter, QTabWidget, QTextBrowser, QVBoxLayout, QWidget,
 )
 
 import config
 import diagnostics
 import history
+from cmd_tab import CommandsTab
 from sensors import is_admin
 
 SEV_COLOR = {"crit": "#f87171", "warn": "#facc15", "info": "#9aa3b5", "ok": "#4ade80"}
@@ -52,6 +53,9 @@ class DiagnosticsTab(QWidget):
         self.inner = QTabWidget()
         lay.addWidget(self.inner)
         self.inner.addTab(self._build_analysis(), "Análise")
+        self.cmds = CommandsTab()
+        self.cmds.set_context(self.cfg.get("diag_scenario", "geral"))
+        self.inner.addTab(self.cmds, "Comandos sugeridos")
         self.inner.addTab(self._build_tools(), "Ferramentas")
         self._show_milestone()
         self._intro()
@@ -106,6 +110,27 @@ class DiagnosticsTab(QWidget):
         split.setSizes([470, 450])
         lay.addWidget(split, 1)
 
+        gs = QGroupBox("Salvamento automático")
+        gsl = QVBoxLayout(gs)
+        top = QHBoxLayout()
+        cb = QCheckBox("Salvar relatório e dados brutos ao fim de cada diagnóstico")
+        cb.setChecked(bool(self.cfg.get("diag_autosave", True)))
+        cb.toggled.connect(self._autosave_toggled)
+        top.addWidget(cb, 1)
+        for text, fn in (("Abrir Relatórios", lambda: self.open_folder("rep")),
+                         ("Abrir Dados brutos", lambda: self.open_folder("raw")),
+                         ("Mudar pasta…", self.choose_dir)):
+            b = QPushButton(text)
+            b.clicked.connect(fn)
+            top.addWidget(b)
+        gsl.addLayout(top)
+        self.lb_dir = QLabel()
+        self.lb_dir.setWordWrap(True)
+        self.lb_dir.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        gsl.addWidget(self.lb_dir)
+        lay.addWidget(gs)
+        self._show_dir()
+
         g = QGroupBox("Marco de comparação")
         gl = QHBoxLayout(g)
         self.lb_mile = QLabel()
@@ -138,6 +163,7 @@ class DiagnosticsTab(QWidget):
     def _scn_changed(self):
         self.cfg["diag_scenario"] = self.cb_scn.currentData()
         self.on_change()
+        self.cmds.set_context(self.cb_scn.currentData(), None)
 
     def run_diag(self):
         if self.thread and self.thread.isRunning():
@@ -160,13 +186,16 @@ class DiagnosticsTab(QWidget):
         self.progress.hide()
         self.btn_run.setEnabled(True)
         self.report, self.raw = report, raw
+        self.cmds.set_context(report.scenario, report)
+        saved = self._autosave()
         for b in (self.btn_save, self.btn_copy, self.btn_raw):
             b.setEnabled(True)
         crit = sum(1 for f in report.relevant if f.sev == "crit")
         warn = sum(1 for f in report.relevant if f.sev == "warn")
         self.lb_status.setText(f"Concluído em {report.created} — foco: {report.scenario_label()}. "
                                f"{crit} crítico(s), {warn} atenção. "
-                               + (f"Avisos da coleta: {len(report.collection_errors)}." if report.collection_errors else ""))
+                               + (f"Avisos da coleta: {len(report.collection_errors)}. " if report.collection_errors else "")
+                               + (f"Salvo automaticamente em {saved}." if saved else ""))
         self.list.clear()
         top = report.top()
         if top:
@@ -245,6 +274,47 @@ class DiagnosticsTab(QWidget):
     def _default_name(self, ext):
         return os.path.join(os.path.expanduser("~"), "Documents",
                             f"diagnostico-pc-{dt.datetime.now().strftime('%Y%m%d-%H%M')}.{ext}")
+
+    def _autosave(self):
+        """Grava relatório (.txt) e dados brutos (.json) em duas pastas. Devolve a pasta-base ou ''."""
+        if not self.cfg.get("diag_autosave", True):
+            return ""
+        try:
+            rep_dir, raw_dir = config.diag_dirs(self.cfg)
+            stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+            name = f"diagnostico-{self.report.scenario}-{stamp}"
+            with open(os.path.join(rep_dir, name + ".txt"), "w", encoding="utf-8") as f:
+                f.write(self.report.to_text())
+            with open(os.path.join(raw_dir, name + ".json"), "w", encoding="utf-8") as f:
+                json.dump(self.raw, f, indent=1, ensure_ascii=False)
+            return config.diag_base_dir(self.cfg)
+        except OSError as e:
+            self.lb_status.setText(f"Não foi possível salvar automaticamente: {e}")
+            return ""
+
+    def open_folder(self, which):
+        rep_dir, raw_dir = config.diag_dirs(self.cfg)
+        path = rep_dir if which == "rep" else raw_dir
+        if sys.platform == "win32":
+            os.startfile(path)  # noqa: S606
+        else:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def choose_dir(self):
+        path = QFileDialog.getExistingDirectory(self, "Pasta-base dos diagnósticos (serão criadas 2 subpastas)",
+                                                config.diag_base_dir(self.cfg))
+        if path:
+            self.cfg["diag_dir"] = path
+            self.on_change()
+            self._show_dir()
+
+    def _autosave_toggled(self, on):
+        self.cfg["diag_autosave"] = bool(on)
+        self.on_change()
+
+    def _show_dir(self):
+        self.lb_dir.setText(f"Pasta: <b>{_esc(config.diag_base_dir(self.cfg))}</b> (subpastas <i>Relatorios</i> e "
+                            f"<i>Dados brutos</i>)")
 
     def save_report(self):
         if not self.report:

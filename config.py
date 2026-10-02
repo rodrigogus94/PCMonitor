@@ -20,6 +20,21 @@ def history_dir():
     return path
 
 
+def diag_base_dir(cfg=None):
+    """Pasta-base dos diagnósticos salvos (padrão: Documentos/PCMonitor)."""
+    custom = (cfg or {}).get("diag_dir")
+    return custom or os.path.join(os.path.expanduser("~"), "Documents", "PCMonitor")
+
+
+def diag_dirs(cfg=None):
+    """(pasta de relatórios, pasta de dados brutos); cria as duas se não existirem."""
+    base = diag_base_dir(cfg)
+    rep, raw = os.path.join(base, "Relatorios"), os.path.join(base, "Dados brutos")
+    os.makedirs(rep, exist_ok=True)
+    os.makedirs(raw, exist_ok=True)
+    return rep, raw
+
+
 def config_path():
     return os.path.join(data_dir(), "config.json")
 
@@ -53,6 +68,8 @@ DEFAULT = {
     "logging": {"enabled": True, "interval_s": 5, "retention_days": 30},
     "start_with_windows": False,
     "diag_scenario": "geral",
+    "diag_dir": None,        # pasta-base dos relatórios salvos (None = Documentos/PCMonitor)
+    "diag_autosave": True,
     "milestone": None,   # {"ts": "...", "note": "..."} marco de comparação do diagnóstico
     "widgets": [],
 }

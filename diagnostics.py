@@ -397,6 +397,18 @@ class Report:
             dump(self.others)
         if self.collection_errors:
             L += ["AVISOS DA COLETA"] + [f"  - {e}" for e in self.collection_errors]
+        try:
+            import cmd_suggestions
+            hyp = set()
+            for h in self.hypotheses[:2]:
+                if h[2] > 0:
+                    hyp |= HYP_TAGS.get(h[0], set())
+            items = [x for x in cmd_suggestions.suggest(SCENARIOS.get(self.scenario, SCENARIOS["geral"])[1], hyp or None)
+                     if x[1].startswith("Ligados")] or cmd_suggestions.suggest(
+                SCENARIOS.get(self.scenario, SCENARIOS["geral"])[1])[:8]
+            L += ["", cmd_suggestions.to_text(items[:12])]
+        except Exception:  # noqa: BLE001
+            pass
         return "\n".join(L)
 
 
